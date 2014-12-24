@@ -5,6 +5,6 @@ A Python script that exports all of your Spotify playlists. (Useful for paranoid
 
     python spotify-backup.py playlists.txt
 
-This'll pop open a web browser letting you authorize the script to access the Spotify API. Then it'll download your playlists and save a tab-separated file `playlists.txt` with your playlists that you can open in Excel. (As a bonus, you can copy-paste the rows into a Spotify playlist!)
+This'll pop open a web browser letting you authorize the script to access the Spotify API. Then it'll download your playlists and save a tab-separated file `playlists.txt` with your playlists that you can open in Excel. (As a bonus, you can copy-paste the rows into a Spotify playlist.) Collaborative playlists and playlist folders don't show up in the API, sadly.
 
 Adding `--format=json` will give you a JSON dump with everything that the script gets from the Spotify API. If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
