@@ -115,8 +115,13 @@ def main():
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                           + '`playlist-read-private` permission)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
-	parser.add_argument('file', help='output filename')
+	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
+	
+	# If they didn't give a filename, then just prompt them. (They probably just double-clicked.)
+	if not args.file:
+		print "Enter a file name (e.g. playlists.txt):",
+		args.file = raw_input()
 	
 	# Log into the Spotify API.
 	if args.token:
