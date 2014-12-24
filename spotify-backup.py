@@ -120,8 +120,7 @@ def main():
 	
 	# If they didn't give a filename, then just prompt them. (They probably just double-clicked.)
 	if not args.file:
-		print "Enter a file name (e.g. playlists.txt):",
-		args.file = raw_input()
+		args.file = raw_input('Enter a file name (e.g. playlists.txt): ')
 	
 	# Log into the Spotify API.
 	if args.token:
