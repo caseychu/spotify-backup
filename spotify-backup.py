@@ -109,7 +109,7 @@ def log(str):
 
 def main():
 	# Parse arguments.
-	parser = argparse.ArgumentParser(description='Exports your Spotify playlists. By default, opens a browser window'
+	parser = argparse.ArgumentParser(description='Exports your Spotify playlists. By default, opens a browser window '
 	                                           + 'to authorize the Spotify Web API, but you can also manually specify'
 	                                           + ' an OAuth token with the --token option.')
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
