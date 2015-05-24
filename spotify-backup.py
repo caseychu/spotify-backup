@@ -2,6 +2,7 @@
 
 import argparse 
 import codecs
+import http.client
 import http.server
 import json
 import re
@@ -34,8 +35,8 @@ class SpotifyAPI:
 				res = urllib.request.urlopen(req)
 				reader = codecs.getreader('utf-8')
 				return json.load(reader(res))
-			except urllib.error.HTTPError as err:
-				log('Couldn\'t load URL: {} ({} {})'.format(url, err.code, err.reason))
+			except Exception as err:
+				log('Couldn\'t load URL: {} ({})'.format(url, err))
 				time.sleep(2)
 				log('Trying again...')
 		sys.exit(1)
