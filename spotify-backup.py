@@ -152,7 +152,7 @@ def main():
 		if args.format == 'json':
 			json.dump(playlists, f)
 		
-		# Tab-separated file.
+		# Tab-separated file. Test
 		elif args.format == 'txt':
 			f.write("# Spotify Playlists Backup " + time.strftime("%d %b %Y") + "\r\n")
 			for playlist in playlists:
