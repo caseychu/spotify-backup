@@ -179,7 +179,7 @@ def main():
 		# List all playlists and all track in each playlist - scope playlist-read-private, playlist-read-collaborative
 		data['playlists'] = spotify.list('users/{user_id}/playlists'.format(user_id=data['me']['id']), {'limit': 50})
 		for playlist in data['playlists']:
-			log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+			log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist), end='')
 			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 	
 	# Write the file.
