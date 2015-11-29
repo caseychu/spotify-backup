@@ -10,4 +10,4 @@ You can also run the script from the command line:
 
     python spotify-backup.py data.json
 
-If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
+If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with `user-follow-read user-library-read playlist-read-private playlist-read-collaborative` permission) and pass it with the `--token` option.
