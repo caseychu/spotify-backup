@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 
-import argparse 
+import sys, os, re, time
+import argparse
 import codecs
-import http.client
+import urllib.parse, urllib.request, urllib.error
 import http.server
-import json
-import re
-import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import webbrowser
+import json
+import xspf
 
 class SpotifyAPI:
 	
@@ -118,7 +114,7 @@ class SpotifyAPI:
 
 def log(str, end="\n"):
 	#print('[{}] {}'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
-	sys.stdout.buffer.write(('[{}] {}'+end).format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
+	sys.stdout.buffer.write(('[{}] {}'+end).format(time.strftime('%H:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
 	sys.stdout.flush()
 
 def main():
@@ -128,15 +124,15 @@ def main():
 	                                           + ' an OAuth token with the --token option.')
 	parser.add_argument('-t', '--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                           + '`playlist-read-private` permission)')
-	parser.add_argument('-f', '--format', default='json', choices=['json', 'txt', 'md'], help='output format (default: json)')
+	parser.add_argument('-f', '--format', default='json', choices=['json', 'xspf', 'txt', 'md'], help='output format (default: json)')
 	parser.add_argument('-l', '--load', metavar='JSON_FILE', help='load an existing json file to create txt or markdown output (playlists only currently)')
 	parser.add_argument('-i', '--indent', metavar='INDENT_STR', default=None, help='indent JSON output')
-	parser.add_argument('file', help='output filename', nargs='?')
+	parser.add_argument('file', help='output filename (or directory for xspf)', nargs='?')
 	args = parser.parse_args()
 	
 	# If they didn't give a filename, then just prompt them. (They probably just double-clicked.)
 	while not args.file:
-		args.file = input('Enter a file name (e.g. playlists.txt): ')
+		args.file = input('Enter a file name (e.g. playlists.txt) or directory (xspf format): ')
 	
 	if args.load:
 		with open(args.load, 'r', encoding='utf-8') as f:
@@ -182,39 +178,85 @@ def main():
 			log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist), end='')
 			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 	
-	# Write the file.
-	with open(args.file, 'w', encoding='utf-8') as f:
-		# JSON file.
-		if args.format == 'json':
-			json.dump(data, f, indent=args.indent)
-		
-		# Tab-separated file.
-		elif args.format == 'txt':
-			for playlist in data['playlists']:
-				f.write(playlist['name'] + "\n")
-				for track in playlist['tracks']:
-					f.write('{name}\t{artists}\t{album}\t{uri}\n'.format(
-						uri=track['track']['uri'],
-						name=track['track']['name'],
-						artists=', '.join([artist['name'] for artist in track['track']['artists']]),
-						album=track['track']['album']['name']
-					))
-				f.write('\n')
-		
-		# Markdown
-		elif args.format == 'md':
-			f.write("# Spotify Playlists Backup " + time.strftime("%d %b %Y") + "\n")
-			for playlist in data['playlists']:
-				f.write("## " + playlist["name"] + "\n")
-				for track in playlist['tracks']:
-					f.write("* {name}\t{artists}\t{album}\t`{uri}`\n".format(
-						uri=track["track"]["uri"],
-						name=track["track"]["name"],
-						artists=", ".join([artist["name"] for artist in track["track"]["artists"]]),
-						album=track["track"]["album"]["name"]
-					))
-				f.write("\n")
-	log('Wrote file: ' + args.file)
+	# Write the file(s).
+	if args.format == 'xspf':
+		# Create the specified directory
+		if not os.path.exists(args.file):
+			os.makedirs(args.file)
+		mkvalid_filename = re.compile(r'[/\\:*?"<>|]')
+		# Fake the special tracks playlist as regular playlist
+		data['playlists'].append({'id': 'saved-tracks', 'name': 'Saved tracks', 'tracks': data['tracks']})
+		# Playlists
+		for playlist in data['playlists']:
+			valid_filename = mkvalid_filename.sub('', playlist['name'])
+			with open('{}{}{}___{}.xspf'.format(args.file, os.sep, valid_filename, playlist['id']), 'w', encoding='utf-8') as f: # Avoid conflicts using id
+				try:
+					x = xspf.Xspf(title=playlist['name'])
+					for track in playlist['tracks']:
+						x.add_track(
+							title=track['track']['name'],
+							album=track['track']['album']['name'],
+							creator=', '.join([artist['name'] for artist in track['track']['artists']])
+						)
+					f.write(x.toXml().decode('utf-8'))
+				except Exception as e:
+					log('Failed in playlist {} ({}) : {}'.format(playlist['id'], playlist['name'], e))
+		# Saved albums -- different format & more informations
+		for album in data['albums']:
+			artist = ', '.join(a['name'] for a in album['album']['artists'])
+			filename = 'Saved album - '+artist+' - '+album['album']['name']
+			valid_filename = mkvalid_filename.sub('', filename)
+			with open('{}{}{}___{}.xspf'.format(args.file, os.sep, valid_filename, album['album']['id']), 'w', encoding='utf-8') as f: # Avoid conflicts using id
+				try:
+					x = xspf.Xspf(
+						date=album['album']['release_date'],
+						creator=artist,
+						title=album['album']['name']
+					)
+					for track in album['album']['tracks']['items']:
+						x.add_track(
+							title=track['name'],
+							album=album['album']['name'],
+							creator=', '.join([artist['name'] for artist in track['artists']]),
+							duration=str(track['duration_ms']),
+							trackNum=str(track['track_number']),
+						)
+					f.write(x.toXml().decode('utf-8'))
+				except Exception as e:
+					log('Failed in playlist {} ({}) : {}'.format(album['album']['id'], filename, e))
+	else:
+		with open(args.file, 'w', encoding='utf-8') as f:
+			# JSON file.
+			if args.format == 'json':
+				json.dump(data, f, indent=args.indent)
+			
+			# Tab-separated file.
+			elif args.format == 'txt':
+				for playlist in data['playlists']:
+					f.write(playlist['name'] + "\n")
+					for track in playlist['tracks']:
+						f.write('{name}\t{artists}\t{album}\t{uri}\n'.format(
+							uri=track['track']['uri'],
+							name=track['track']['name'],
+							artists=', '.join([artist['name'] for artist in track['track']['artists']]),
+							album=track['track']['album']['name']
+						))
+					f.write('\n')
+			
+			# Markdown
+			elif args.format == 'md':
+				f.write("# Spotify Playlists Backup " + time.strftime("%d %b %Y") + "\n")
+				for playlist in data['playlists']:
+					f.write("## " + playlist["name"] + "\n")
+					for track in playlist['tracks']:
+						f.write("* {name}\t{artists}\t{album}\t`{uri}`\n".format(
+							uri=track["track"]["uri"],
+							name=track["track"]["name"],
+							artists=", ".join([artist["name"] for artist in track["track"]["artists"]]),
+							album=track["track"]["album"]["name"]
+						))
+					f.write("\n")
+		log('Wrote file: ' + args.file)
 
 if __name__ == '__main__':
 	main()
