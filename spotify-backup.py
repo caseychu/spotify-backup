@@ -123,6 +123,7 @@ def main():
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                           + '`playlist-read-private` permission)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
+	parser.add_argument('--scope', default='playlist-read-collaborative', choices=['playlist-read-private', 'playlist-read-collaborative'], help='Spotify Scope to use, to get private or private and collaborative lists.  (default: playlist-read-collaborative)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -134,7 +135,7 @@ def main():
 	if args.token:
 		spotify = SpotifyAPI(args.token)
 	else:
-		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934', scope='playlist-read-private')
+		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934', scope=args.scope)
 	
 	# Get the ID of the logged in user.
 	me = spotify.get('me')
