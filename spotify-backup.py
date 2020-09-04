@@ -124,6 +124,7 @@ def main():
 	                                           + '`playlist-read-private` permission)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
 	parser.add_argument('--scope', default='playlist-read-collaborative', choices=['playlist-read-private', 'playlist-read-collaborative'], help='Spotify Scope to use, to get private or private and collaborative lists.  (default: playlist-read-collaborative)')
+	parser.add_argument('--playlist_name', help='specific playlist to export (optional)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -137,12 +138,24 @@ def main():
 	else:
 		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934', scope=args.scope)
 	
+	if (args.playlist_name):
+		log("only looking for playlist: " + args.playlist_name)
+
 	# Get the ID of the logged in user.
 	me = spotify.get('me')
 	log('Logged in as {display_name} ({id})'.format(**me))
 
 	# List all playlists and all track in each playlist.
 	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+
+	# Optionally filter the playlist
+	if (args.playlist_name):
+		playlists = list(filter(lambda playlist: playlist['name'] == args.playlist_name, playlists))
+
+	# If the list is empty, show a warning, return.
+	if (len(playlists) == 0):
+		log('Playlist with name ' + args.playlist_name + ' not found on your playlist... list. Did you spell it correctly? Also ensure that if it has fancy font, you copy the font too.')
+		return
 	for playlist in playlists:
 		log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})

@@ -11,6 +11,8 @@ You can also run the script from the command line:
 
 Adding `--format=json` will give you a JSON dump with everything that the script gets from the Spotify API. If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
 
+Adding `--playlist_name="name of playlist you want"` will filter the results to only include a specifically named playlist. 
+
 Collaborative playlists and playlist folders don't show up in the API, sadly.
 
 *The [last version compatible with Python 2.7](https://raw.githubusercontent.com/bitsofpancake/spotify-backup/1f7e76a230e10910aa2cfa5d83ced4c271377af4/spotify-backup.py) probably still works.
