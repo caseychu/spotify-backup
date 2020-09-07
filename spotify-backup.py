@@ -123,7 +123,7 @@ def main():
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                           + '`playlist-read-private` permission)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
-	parser.add_argument('--scope', default='playlist-read-collaborative', choices=['playlist-read-private', 'playlist-read-collaborative'], help='Spotify Scope to use, to get private or private and collaborative lists.  (default: playlist-read-collaborative)')
+	parser.add_argument('--scope', default='playlist-read-private', choices=['playlist-read-private', 'playlist-read-collaborative','user-library-read'], help='Spotify Scope to use, to get private or private and collaborative lists.  (default: playlist-read-collaborative)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -142,11 +142,15 @@ def main():
 	log('Logged in as {display_name} ({id})'.format(**me))
 
 	# List all playlists and all track in each playlist.
-	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
-	for playlist in playlists:
-		log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
-	
+	if args.scope in ['playlist-read-private', 'playlist-read-collaborative']:
+		playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+		for playlist in playlists:
+			log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
+	elif args.scope == 'user-library-read': #Get the 'Liked'/'Saved' tracks
+		likedlist = spotify.list('users/{user_id}/tracks'.format(user_id=me['id']), {'limit': 50})
+		likedlist_dict = {'name':'Liked Songs','tracks':likedlist}
+		playlists = [likedlist_dict]
 	# Write the file.
 	with open(args.file, 'w', encoding='utf-8') as f:
 		# JSON file.
