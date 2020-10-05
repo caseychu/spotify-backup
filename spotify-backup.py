@@ -45,6 +45,10 @@ class SpotifyAPI:
 	# fetches all pages and joins them, returning in a single list of objects.
 	def list(self, url, params={}):
 		response = self.get(url, params)
+		requests = int(response['total'] / params['limit'])
+		if requests > 10:
+			timeEstimate = int(0.27*requests); # in seconds, 0.28 was the average speed of 130 requests
+			log('{} items, {} items per request, {} requests, ~{} seconds'.format(response['total'], params['limit'], requests, timeEstimate))
 		items = response['items']
 		while response['next']:
 			response = self.get(response['next'])
