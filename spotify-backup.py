@@ -111,9 +111,12 @@ class SpotifyAPI:
 			self.access_token = access_token
 
 def log(str):
-	#print('[{}] {}'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
-	sys.stdout.buffer.write('[{}] {}\n'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
-	sys.stdout.flush()
+        fileOutput = False #replace with the opposite value if errors occur
+        if not fileOutput:
+                print('[{}] {}'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
+        else:
+                sys.stdout.buffer.write('[{}] {}\n'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
+                sys.stdout.flush()
 
 def main():
 	# Parse arguments.
