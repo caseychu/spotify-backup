@@ -60,7 +60,7 @@ class SpotifyAPI:
 			'scope': scope,
 			'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT)
 		})
-		log(f'Logging in (click to open if it doesn\'t open automatically): {url}')
+		log(f'Logging in (click if it doesn\'t open automatically): {url}')
 		webbrowser.open(url)
 	
 		# Start a simple, local HTTP server to listen for the authorization token... (i.e. a hack).
@@ -101,7 +101,7 @@ class SpotifyAPI:
 				self.wfile.write(b'<script>close()</script>Thanks! You may now close this window.')
 
 				access_token = re.search('access_token=([^&]*)', self.path).group(1)
-				log('Received access token: {access_token}')
+				log(f'Received access token from Spotify: {access_token}')
 				raise SpotifyAPI._Authorization(access_token)
 			
 			else:
@@ -126,9 +126,8 @@ def main():
 	                                           + 'to authorize the Spotify Web API, but you can also manually specify'
 	                                           + ' an OAuth token with the --token option.')
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
-	                                           + '`playlist-read-private` permission)')
+	                                                         + '`playlist-read-private` permission)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
-	parser.add_argument('--scope', default='playlist-read-collaborative', choices=['playlist-read-private', 'playlist-read-collaborative'], help='Spotify Scope to use, to get private or private and collaborative lists.  (default: playlist-read-collaborative)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -141,7 +140,8 @@ def main():
 	if args.token:
 		spotify = SpotifyAPI(args.token)
 	else:
-		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934', scope=args.scope)
+		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
+		                               scope='playlist-read-private playlist-read-collaborative user-library-read')
 	
 	# Get the ID of the logged in user.
 	me = spotify.get('me')
