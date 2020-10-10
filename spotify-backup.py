@@ -54,12 +54,14 @@ class SpotifyAPI:
 	# Pops open a browser window for a user to log in and authorize API access.
 	@staticmethod
 	def authorize(client_id, scope):
-		webbrowser.open('https://accounts.spotify.com/authorize?' + urllib.parse.urlencode({
+		url = 'https://accounts.spotify.com/authorize?' + urllib.parse.urlencode({
 			'response_type': 'token',
 			'client_id': client_id,
 			'scope': scope,
 			'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT)
-		}))
+		})
+		log(f'Logging in (click to open if it doesn\'t open automatically): {url}')
+		webbrowser.open(url)
 	
 		# Start a simple, local HTTP server to listen for the authorization token... (i.e. a hack).
 		server = SpotifyAPI._AuthorizationServer('127.0.0.1', SpotifyAPI._SERVER_PORT)
@@ -97,7 +99,10 @@ class SpotifyAPI:
 				self.send_header('Content-Type', 'text/html')
 				self.end_headers()
 				self.wfile.write(b'<script>close()</script>Thanks! You may now close this window.')
-				raise SpotifyAPI._Authorization(re.search('access_token=([^&]*)', self.path).group(1))
+
+				access_token = re.search('access_token=([^&]*)', self.path).group(1)
+				log('Received access token: {access_token}')
+				raise SpotifyAPI._Authorization(access_token)
 			
 			else:
 				self.send_error(404)
