@@ -5,6 +5,7 @@ import codecs
 import http.client
 import http.server
 import json
+import logging
 import re
 import sys
 import time
@@ -12,6 +13,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+
+logging.basicConfig(level=20, datefmt='%I:%M:%S', format='[%(asctime)s] %(message)s')
+
 
 class SpotifyAPI:
 	
@@ -36,9 +40,9 @@ class SpotifyAPI:
 				reader = codecs.getreader('utf-8')
 				return json.load(reader(res))
 			except Exception as err:
-				log('Couldn\'t load URL: {} ({})'.format(url, err))
+				logging.info('Couldn\'t load URL: {} ({})'.format(url, err))
 				time.sleep(2)
-				log('Trying again...')
+				logging.info('Trying again...')
 		sys.exit(1)
 	
 	# The Spotify API breaks long lists into multiple pages. This method automatically
@@ -60,7 +64,7 @@ class SpotifyAPI:
 			'scope': scope,
 			'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT)
 		})
-		log(f'Logging in (click if it doesn\'t open automatically): {url}')
+		logging.info(f'Logging in (click if it doesn\'t open automatically): {url}')
 		webbrowser.open(url)
 	
 		# Start a simple, local HTTP server to listen for the authorization token... (i.e. a hack).
@@ -101,7 +105,7 @@ class SpotifyAPI:
 				self.wfile.write(b'<script>close()</script>Thanks! You may now close this window.')
 
 				access_token = re.search('access_token=([^&]*)', self.path).group(1)
-				log(f'Received access token from Spotify: {access_token}')
+				logging.info(f'Received access token from Spotify: {access_token}')
 				raise SpotifyAPI._Authorization(access_token)
 			
 			else:
@@ -115,10 +119,6 @@ class SpotifyAPI:
 		def __init__(self, access_token):
 			self.access_token = access_token
 
-def log(str):
-	#print('[{}] {}'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
-	sys.stdout.buffer.write('[{}] {}\n'.format(time.strftime('%I:%M:%S'), str).encode(sys.stdout.encoding, errors='replace'))
-	sys.stdout.flush()
 
 def main():
 	# Parse arguments.
@@ -142,19 +142,20 @@ def main():
 	else:
 		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
 		                               scope='playlist-read-private playlist-read-collaborative user-library-read')
+	logging.info('Loading info...')
 	
 	# Get the ID of the logged in user.
 	me = spotify.get('me')
-	log('Logged in as {display_name} ({id})'.format(**me))
+	logging.info('Logged in as {display_name} ({id})'.format(**me))
 
 	# List all playlists and all track in each playlist.
 	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
 	for playlist in playlists:
-		log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+		logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 	
 	# Write the file.
-	log('Writing files...')
+	logging.info('Writing files...')
 	with open(args.file, 'w', encoding='utf-8') as f:
 		# JSON file.
 		if args.format == 'json':
@@ -172,7 +173,7 @@ def main():
 						album=track['track']['album']['name']
 					))
 				f.write('\r\n')
-	log('Wrote file: ' + args.file)
+	logging.info('Wrote file: ' + args.file)
 
 if __name__ == '__main__':
 	main()
