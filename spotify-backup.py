@@ -48,9 +48,15 @@ class SpotifyAPI:
 	# The Spotify API breaks long lists into multiple pages. This method automatically
 	# fetches all pages and joins them, returning in a single list of objects.
 	def list(self, url, params={}):
+		last_log_time = time.time()
 		response = self.get(url, params)
 		items = response['items']
+
 		while response['next']:
+			if time.time() > last_log_time + 15:
+				last_log_time = time.time()
+				logging.info(f"Loaded {len(items)}/{response['total']} items")
+
 			response = self.get(response['next'])
 			items += response['items']
 		return items
@@ -142,14 +148,17 @@ def main():
 	else:
 		spotify = SpotifyAPI.authorize(client_id='5c098bcc800e45d49e476265bc9b6934',
 		                               scope='playlist-read-private playlist-read-collaborative user-library-read')
-	logging.info('Loading info...')
 	
 	# Get the ID of the logged in user.
+	logging.info('Loading user info...')
 	me = spotify.get('me')
 	logging.info('Logged in as {display_name} ({id})'.format(**me))
 
 	# List all playlists and all track in each playlist.
+	logging.info('Loading playlists...')
 	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+	logging.info(f'Found {len(playlists)} playlists')
+
 	for playlist in playlists:
 		logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
