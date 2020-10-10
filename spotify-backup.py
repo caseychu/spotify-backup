@@ -149,6 +149,7 @@ def main():
 		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 	
 	# Write the file.
+	log('Writing files...')
 	with open(args.file, 'w', encoding='utf-8') as f:
 		# JSON file.
 		if args.format == 'json':
