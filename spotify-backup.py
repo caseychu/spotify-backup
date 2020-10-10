@@ -167,13 +167,14 @@ def main():
 	# List all playlists and the tracks in each playlist
 	if 'playlists' in args.dump:
 		logging.info('Loading playlists...')
-		playlists += spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+		playlist_data = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
 		logging.info(f'Found {len(playlists)} playlists')
 
 		# List all tracks in each playlist
-		for playlist in playlists:
+		for playlist in playlist_data:
 			logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
+		playlists += playlist_data
 	
 	# Write the file.
 	logging.info('Writing files...')
