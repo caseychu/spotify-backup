@@ -133,7 +133,7 @@ def main():
 	                                           + ' an OAuth token with the --token option.')
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                                         + '`playlist-read-private` permission)')
-	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists', 'liked'],
+	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists,liked', 'playlists', 'liked'],
 	                    help='dump playlists or liked songs, or both (default: playlists)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
 	parser.add_argument('file', help='output filename', nargs='?')
