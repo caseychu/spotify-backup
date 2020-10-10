@@ -149,6 +149,7 @@ def main():
 
 	# List all playlists and all track in each playlist.
 	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+	playlists.sort(key=lambda playlist: playlist['name'])
 	for playlist in playlists:
 		log('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
