@@ -133,6 +133,8 @@ def main():
 	                                           + ' an OAuth token with the --token option.')
 	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
 	                                                         + '`playlist-read-private` permission)')
+	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists', 'liked'],
+	                    help='dump playlists or liked songs, or both (default: playlists)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
@@ -154,14 +156,24 @@ def main():
 	me = spotify.get('me')
 	logging.info('Logged in as {display_name} ({id})'.format(**me))
 
-	# List all playlists and all track in each playlist.
-	logging.info('Loading playlists...')
-	playlists = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
-	logging.info(f'Found {len(playlists)} playlists')
+	playlists = []
 
-	for playlist in playlists:
-		logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-		playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
+	# List liked songs
+	if 'liked' in args.dump:
+		logging.info('Loading liked songs...')
+		liked_tracks = spotify.list('users/{user_id}/tracks'.format(user_id=me['id']), {'limit': 50})
+		playlists += [{'name': 'Liked Songs', 'tracks': liked_tracks}]
+
+	# List all playlists and the tracks in each playlist
+	if 'playlists' in args.dump:
+		logging.info('Loading playlists...')
+		playlists += spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
+		logging.info(f'Found {len(playlists)} playlists')
+
+		# List all tracks in each playlist
+		for playlist in playlists:
+			logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 	
 	# Write the file.
 	logging.info('Writing files...')
