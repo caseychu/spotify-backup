@@ -188,6 +188,8 @@ def main():
 			for playlist in playlists:
 				f.write(playlist['name'] + '\r\n')
 				for track in playlist['tracks']:
+					if track['track'] is None:
+						continue
 					f.write('{name}\t{artists}\t{album}\t{uri}\r\n'.format(
 						uri=track['track']['uri'],
 						name=track['track']['name'],
