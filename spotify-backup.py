@@ -2,6 +2,7 @@
 
 import argparse 
 import codecs
+import fnmatch
 import http.client
 import http.server
 import json
@@ -131,12 +132,16 @@ def main():
 	parser = argparse.ArgumentParser(description='Exports your Spotify playlists. By default, opens a browser window '
 	                                           + 'to authorize the Spotify Web API, but you can also manually specify'
 	                                           + ' an OAuth token with the --token option.')
-	parser.add_argument('--token', metavar='OAUTH_TOKEN', help='use a Spotify OAuth token (requires the '
-	                                                         + '`playlist-read-private` permission)')
-	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists,liked', 'playlists', 'liked'],
+	parser.add_argument('--token', metavar='OAUTH_TOKEN',
+	                    help='use a Spotify OAuth token (requires the `playlist-read-private` permission)')
+	parser.add_argument('--dump', default=['playlists'], nargs='+', choices=['liked', 'playlists'],
 	                    help='dump playlists or liked songs, or both (default: playlists)')
 	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
-	parser.add_argument('file', help='output filename', nargs='?')
+	parser.add_argument('--include-playlists', metavar='NAME_PATTERN', default=['*'], nargs='*',
+	                    help='playlist name(s) to be included (default: all) if dumping playlists; ? and * wildcards may be used')
+	parser.add_argument('--exclude-playlists', metavar='NAME_PATTERN', default=[], nargs='*',
+	                    help='playlist name(s) to be excluded (default: none) if dumping playlists; ? and * wildcards may be used')
+	parser.add_argument('--file', help='output filename')
 	args = parser.parse_args()
 	
 	# If they didn't give a filename, then just prompt them. (They probably just double-clicked.)
@@ -164,18 +169,24 @@ def main():
 		liked_tracks = spotify.list('users/{user_id}/tracks'.format(user_id=me['id']), {'limit': 50})
 		playlists += [{'name': 'Liked Songs', 'tracks': liked_tracks}]
 
-	# List all playlists and the tracks in each playlist
+	# List all playlists and the tracks in each requested playlist
 	if 'playlists' in args.dump:
 		logging.info('Loading playlists...')
 		playlist_data = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
 		logging.info(f'Found {len(playlists)} playlists')
 
-		# List all tracks in each playlist
+		# List all tracks in each requested playlist
 		for playlist in playlist_data:
-			logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
-			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
-		playlists += playlist_data
-	
+			is_included = any([fnmatch.fnmatch(playlist['name'], pattern) for pattern in args.include_playlists])
+			is_excluded = any([fnmatch.fnmatch(playlist['name'], pattern) for pattern in args.exclude_playlists])
+
+			if is_included and not is_excluded:
+				logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
+				playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
+				playlists.append(playlist)
+			else:
+				logging.info('Skipped playlist: {name}'.format(**playlist))
+
 	# Write the file.
 	logging.info('Writing files...')
 	with open(args.file, 'w', encoding='utf-8') as f:
