@@ -168,7 +168,7 @@ def main():
 	if 'playlists' in args.dump:
 		logging.info('Loading playlists...')
 		playlist_data = spotify.list('users/{user_id}/playlists'.format(user_id=me['id']), {'limit': 50})
-		logging.info(f'Found {len(playlists)} playlists')
+		logging.info(f'Found {len(playlist_data)} playlists')
 
 		# List all tracks in each playlist
 		for playlist in playlist_data:
