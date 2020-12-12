@@ -135,7 +135,7 @@ def main():
 	                                                         + '`playlist-read-private` permission)')
 	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists,liked', 'playlists', 'liked'],
 	                    help='dump playlists or liked songs, or both (default: playlists)')
-	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
+	parser.add_argument('--format', default='txt', choices=['pretty-json', 'json', 'txt'], help='output format (default: %(default)s)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -179,8 +179,12 @@ def main():
 	# Write the file.
 	logging.info('Writing files...')
 	with open(args.file, 'w', encoding='utf-8') as f:
+		# Pretty-printed JSON file.
+		if args.format == 'pretty-json':
+			json.dump(playlists, f, indent=2, separators=(', ', ': '))
+
 		# JSON file.
-		if args.format == 'json':
+		elif args.format == 'json':
 			json.dump(playlists, f)
 		
 		# Tab-separated file.

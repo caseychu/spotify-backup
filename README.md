@@ -9,9 +9,11 @@ You can run the script from the command line:
 
     python spotify-backup.py playlists.txt
 
-or, to get a JSON dump, use:
+or, to get a JSON dump (possibly pretty-printed), use:
 
     python spotify-backup.py playlists.json --format=json
+
+    python spotify-backup.py playlists.json --format=pretty-json
 
 By default, it includes your playlists. To include your Liked Songs, you can use:
 
