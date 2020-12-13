@@ -20,4 +20,4 @@ By default, it includes your playlists. To include your Liked Songs, you can use
 
 If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
 
-Collaborative playlists and playlist folders don't show up in the API, sadly.
+Collaborative playlists and playlist folders ~~don't show up in the API, sadly~~ now show up on the API, along with Discover Weekly and other auto-generated playlists, so they will also be backed-up.
