@@ -13,6 +13,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+import certifi
+import ssl
 
 logging.basicConfig(level=20, datefmt='%I:%M:%S', format='[%(asctime)s] %(message)s')
 
@@ -36,7 +38,8 @@ class SpotifyAPI:
 			try:
 				req = urllib.request.Request(url)
 				req.add_header('Authorization', 'Bearer ' + self._auth)
-				res = urllib.request.urlopen(req)
+				context = ssl.create_default_context(cafile=certifi.where())
+				res = urllib.request.urlopen(req, context=context)
 				reader = codecs.getreader('utf-8')
 				return json.load(reader(res))
 			except Exception as err:
