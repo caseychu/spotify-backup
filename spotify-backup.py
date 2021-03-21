@@ -193,11 +193,12 @@ def main():
 				for track in playlist['tracks']:
 					if track['track'] is None:
 						continue
-					f.write('{name}\t{artists}\t{album}\t{uri}\r\n'.format(
+					f.write('{name}\t{artists}\t{album}\t{added_at}\t{uri}\r\n'.format(
 						uri=track['track']['uri'],
 						name=track['track']['name'],
 						artists=', '.join([artist['name'] for artist in track['track']['artists']]),
-						album=track['track']['album']['name']
+						album=track['track']['album']['name'],
+                                                added_at = track['added_at']
 					))
 				f.write('\r\n')
 	logging.info('Wrote file: ' + args.file)
