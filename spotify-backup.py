@@ -126,6 +126,21 @@ class SpotifyAPI:
 			self.access_token = access_token
 
 
+def maybe_delete(d, k):
+	if k in d:
+		del d[k]
+
+
+def scrub_cruft(obj):
+	if isinstance(obj, dict):
+		maybe_delete(obj, "available_markets")
+		for _, v in obj.items():
+			scrub_cruft(v)
+	elif isinstance(obj, list):
+		for v in obj:
+			scrub_cruft(v)
+
+
 def main():
 	# Parse arguments.
 	parser = argparse.ArgumentParser(description='Exports your Spotify playlists. By default, opens a browser window '
@@ -175,13 +190,16 @@ def main():
 			logging.info('Loading playlist: {name} ({tracks[total]} songs)'.format(**playlist))
 			playlist['tracks'] = spotify.list(playlist['tracks']['href'], {'limit': 100})
 		playlists += playlist_data
+
+	logging.info(f"Scrubbing cruft...")
+	scrub_cruft(playlists)
 	
 	# Write the file.
 	logging.info('Writing files...')
 	with open(args.file, 'w', encoding='utf-8') as f:
 		# JSON file.
 		if args.format == 'json':
-			json.dump(playlists, f)
+			json.dump(playlists, f, indent=2)
 		
 		# Tab-separated file.
 		else:
