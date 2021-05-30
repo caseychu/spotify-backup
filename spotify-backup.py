@@ -181,7 +181,7 @@ def main():
 	with open(args.file, 'w', encoding='utf-8') as f:
 		# JSON file.
 		if args.format == 'json':
-			json.dump(playlists, f)
+			json.dump(playlists, f, indent=2)
 		
 		# Tab-separated file.
 		else:
