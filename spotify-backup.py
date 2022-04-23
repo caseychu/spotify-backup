@@ -192,7 +192,7 @@ def main():
 		else:
 			f.write('Playlists:\n\n')
 			for playlist in playlists:
-				f.write(playlist['name'] + '\n\n')
+				f.write(playlist['name'] + '\n')
 				for track in playlist['tracks']:
 					if track['track'] is None:
 						continue
