@@ -1,79 +1,83 @@
-import codecs
+import collections.abc
+import functools
+import itertools
 import json
 import logging
-import sys
-import time
+import typing
 import urllib.parse
 import urllib.request
+import urllib.response
 import webbrowser
 
 from . import authorization
 
 
+def chain(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        return itertools.chain.from_iterable(f(*args, **kwargs))
+    return wrapper
+
+
 class SpotifyAPI:
+    _CLIENT_ID = "5c098bcc800e45d49e476265bc9b6934"
+    _BASE_URL = "https://api.spotify.com/v1/"
 
-    # Requires an OAuth token.
-    def __init__(self, auth):
-        self._auth = auth
+    def __init__(self, token) -> None:
+        self.token = token
 
-    # Gets a resource from the Spotify API and returns the object.
-    def get(self, url, params={}, tries=3):
-        # Construct the correct URL.
-        if not url.startswith('https://api.spotify.com/v1/'):
-            url = 'https://api.spotify.com/v1/' + url
-        if params:
-            url += ('&' if '?' in url else '?') + urllib.parse.urlencode(params)
-
-        # Try the sending off the request a specified number of times before giving up.
-        for _ in range(tries):
-            try:
-                req = urllib.request.Request(url)
-                req.add_header('Authorization', 'Bearer ' + self._auth)
-                res = urllib.request.urlopen(req)
-                reader = codecs.getreader('utf-8')
-                return json.load(reader(res))
-            except Exception as err:
-                logging.info('Couldn\'t load URL: {} ({})'.format(url, err))
-                time.sleep(2)
-                logging.info('Trying again...')
-        sys.exit(1)
-
-    # The Spotify API breaks long lists into multiple pages. This method automatically
-    # fetches all pages and joins them, returning in a single list of objects.
-    def list(self, url, params={}):
-        last_log_time = time.time()
-        response = self.get(url, params)
-        items = response['items']
-
-        while response['next']:
-            if time.time() > last_log_time + 15:
-                last_log_time = time.time()
-                logging.info(f"Loaded {len(items)}/{response['total']} items")
-
-            response = self.get(response['next'])
-            items += response['items']
-        return items
-
-    # Pops open a browser window for a user to log in and authorize API access.
-    @staticmethod
-    def authorize(client_id, scope):
-        url = 'https://accounts.spotify.com/authorize?' + urllib.parse.urlencode({
-            'response_type': 'token',
-            'client_id': client_id,
-            'scope': scope,
-            'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT)
-        })
-        logging.info(f'Logging in (click if it doesn\'t open automatically): {url}')
+    @classmethod
+    def authorize(cls, scopes: collections.abc.Iterable[str]) -> typing.Self:
+        logging.info("Authorizing...")
+        server = authorization.Server()
+        query = urllib.parse.urlencode(
+            {
+                "client_id": cls._CLIENT_ID,
+                "response_type": "token",
+                "redirect_uri": server.redirect_uri(),
+                "state": server.state,
+                "scope": " ".join(scopes)
+            }
+        )
+        url = f"https://accounts.spotify.com/authorize?{query}"
         webbrowser.open(url)
-
-        # Start a simple, local HTTP server to listen for the authorization token... (i.e. a hack).
-        server = authorization.Server('127.0.0.1', SpotifyAPI._SERVER_PORT)
-        try:
-            while True:
+        with server:
+            while server.token is None:
                 server.handle_request()
-        except authorization.Authorization as auth:
-            return SpotifyAPI(auth.access_token)
+        return cls(server.token)
 
-    # The port that the local server listens on. Don't change this,
-    # as Spotify only will redirect to certain predefined URLs.
-    _SERVER_PORT = 43019
+    def get(self, url, params=None) -> typing.Any:
+        query = f"?{urllib.parse.urlencode(params)}" if params else ""
+        request = urllib.request.Request(
+            urllib.parse.urljoin(self._BASE_URL, url) + query,
+            headers={"Authorization": f"Bearer {self.token}"}
+        )
+        print(request.full_url)
+        with urllib.request.urlopen(request) as response:
+            return json.load(response)
+
+    def getter(
+        self, url
+    ) -> collections.abc.Generator[typing.Any, str, None]:
+        while url:
+            yield self.get(url, {"limit": 50})
+            url = yield
+
+    @chain
+    def items(self, url) -> collections.abc.Iterator[typing.Any]:
+        getter = self.getter(url)
+        for body in getter:
+            yield body["items"]
+            getter.send(body["next"])
+
+    def playlists(self):
+        return self.items("me/playlists")
+
+    def playlist_tracks(self, playlist):
+        return self.items(playlist["tracks"]["href"])
+
+    def songs(self):
+        return self.items("me/tracks")
+
+    def albums(self):
+        return self.items("me/albums")

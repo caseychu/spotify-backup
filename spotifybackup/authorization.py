@@ -1,46 +1,52 @@
 import http.server
-import logging
-import re
-
-
-class Server(http.server.HTTPServer):
-    def __init__(self, host, port):
-        http.server.HTTPServer.__init__(self, (host, port), _RequestHandler)
-
-    # Disable the default error handling.
-    def handle_error(self, request, client_address):
-        raise
+import secrets
+import urllib.parse
 
 
 class _RequestHandler(http.server.BaseHTTPRequestHandler):
+    server: "Server"
+
     def do_GET(self):
-        # The Spotify API has redirected here, but access_token is hidden in the URL fragment.
-        # Read it using JavaScript and send it to /token as an actual query string...
-        if self.path.startswith('/redirect'):
+        url = urllib.parse.urlsplit(self.path)
+        if url.path == self.server.REDIRECT_PATH:
             self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
+            self.send_header("Content-Type", "text/html")
             self.end_headers()
-            self.wfile.write(b'<script>location.replace("token?" + location.hash.slice(1));</script>')
-
-        # Read access_token and use an exception to kill the server listening...
-        elif self.path.startswith('/token?'):
+            self.wfile.write(
+                f"<script>location.replace(\"{self.server.TOKEN_PATH}?\" + "
+                "location.hash.slice(1));</script>"
+                .encode()
+            )
+        elif url.path == self.server.TOKEN_PATH:
+            query = urllib.parse.parse_qs(url.query)
+            if query["state"][0] != self.server.state:
+                self.send_error(401)
+            self.server.token = query["access_token"][0]
             self.send_response(200)
-            self.send_header('Content-Type', 'text/html')
+            self.send_header("Content-Type", "text/html")
             self.end_headers()
-            self.wfile.write(b'<script>close()</script>Thanks! You may now close this window.')
+            self.wfile.write(
+                b"<script>close()</script>Thanks! You may now close this "
+                b"window."
+            )
 
-            access_token = re.search('access_token=([^&]*)', self.path).group(1)
-            logging.info(f'Received access token from Spotify: {access_token}')
-            raise Authorization(access_token)
-
-        else:
-            self.send_error(404)
-
-    # Disable the default logging.
-    def log_message(self, format, *args):
+    def log_message(self, format, *args) -> None:
         pass
 
 
-class Authorization(Exception):
-    def __init__(self, access_token):
-        self.access_token = access_token
+class Server(http.server.HTTPServer):
+    _HOST = "127.0.0.1"
+    _PORT = 43019
+    REDIRECT_PATH = "/redirect"
+    TOKEN_PATH = "/token"
+
+    def __init__(self) -> None:
+        self.state = "".join(
+            chr(secrets.choice(range(0x20, 0x7E + 1))) for _ in range(32)
+        )
+        self.token: str | None = None
+        super().__init__((self._HOST, self._PORT), _RequestHandler)
+
+    @classmethod
+    def redirect_uri(cls) -> str:
+        return f"http://{cls._HOST}:{cls._PORT}{cls.REDIRECT_PATH}"
