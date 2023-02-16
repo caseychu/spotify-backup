@@ -1,23 +1,48 @@
-spotify-backup
-==============
+# spotify-backup
 
 A Python script that exports all of your Spotify playlists, useful for paranoid Spotify users like me, afraid that one day Spotify will go under and take all of our playlists with it!
 
-To run the script, [save it from here](https://raw.githubusercontent.com/caseychu/spotify-backup/master/spotify-backup.py) and double-click it. It'll ask you for a filename and then pop open a web page so you can authorize access to the Spotify API. Then the script will load your playlists and save a tab-separated file with your playlists that you can open in Excel. You can even copy-paste the rows from Excel into a Spotify playlist.
+## Usage
 
-You can run the script from the command line:
+To run the script, [save it from here](https://github.com/ejwick/spotify-export/archive/refs/heads/master.zip), extract the repo and run the module:
 
-    python spotify-backup.py playlists.txt
+```
+python -m spotify-backup
+```
 
-or, to get a JSON dump, use:
+It'll ask you for a filename and then pop open a web page so you can authorize access to the Spotify API. Then the script will load your playlists and save a tab-separated file with your playlists that you can open in Excel. You can even copy-paste the rows from Excel into a Spotify playlist.
 
-    python spotify-backup.py playlists.json --format=json
+To get a JSON dump, use the `--format` option:
 
-By default, it includes your playlists. To include your Liked Songs, you can use:
+```
+python -m spotify-backup --format=json playlists.json
+```
 
-    python spotify-backup.py playlists.txt --dump=liked,playlists
+By default, it includes your playlists. To include your liked songs and albums, use the `--dump` option:
 
+```
+python -m spotify-backup --dump=liked,playlists backup.txt
+```
 
-If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
+## Passing an OAuth token
 
-Collaborative playlists and playlist folders don't show up in the API, sadly.
+If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site and pass it with the `--token` option. The token will need these scopes:
+
+- For playlists: `playlist-read-private` and `playlist-read-collaborative`
+- For liked songs and albums: `user-library-read`
+
+## Installation
+
+You can install `spotify-export` so it can be ran directly instead of as a Python module.
+
+Run this from the root folder:
+
+```
+pip install .
+```
+
+Now you can run `spotify-backup` like this:
+
+```
+spotify-backup
+```
