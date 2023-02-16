@@ -1,0 +1,25 @@
+[build-system]
+requires = [ "setuptools>=61.0" ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spotify-backup"
+version = "0.1.0"
+authors = [
+  { name = "Casey Chu", email = "caseychu9@gmail.com" },
+  { name = "Ethan Wick" }
+]
+description = "A Python script that exports your Spotify library"
+readme = "README.md"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/caseychu/spotify-backup"
+"Bug Tracker" = "https://github.com/caseychu/spotify-backup/issues"
+
+[project.scripts]
+spotify-backup = "spotifybackup:main"
