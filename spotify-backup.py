@@ -135,7 +135,7 @@ def main():
 	                                                         + '`playlist-read-private` permission)')
 	parser.add_argument('--dump', default='playlists', choices=['liked,playlists', 'playlists,liked', 'playlists', 'liked'],
 	                    help='dump playlists or liked songs, or both (default: playlists)')
-	parser.add_argument('--format', default='txt', choices=['json', 'txt'], help='output format (default: txt)')
+	parser.add_argument('--format', default='txt', choices=['json', 'txt', 'plain-txt'], help='output format (default: txt)')
 	parser.add_argument('file', help='output filename', nargs='?')
 	args = parser.parse_args()
 	
@@ -190,22 +190,26 @@ def main():
 		
 		# Tab-separated file.
 		else:
-			f.write('Playlists: \r\n\r\n')
+			f.write('Playlists:\n\n')
 			for playlist in playlists:
-				f.write(playlist['name'] + '\r\n')
+				f.write(playlist['name'] + '\n')
 				for track in playlist['tracks']:
 					if track['track'] is None:
 						continue
-					f.write('{name}\t{artists}\t{album}\t{uri}\t{release_date}\r\n'.format(
-						uri=track['track']['uri'],
-						name=track['track']['name'],
-						artists=', '.join([artist['name'] for artist in track['track']['artists']]),
-						album=track['track']['album']['name'],
-						release_date=track['track']['album']['release_date']
-					))
-				f.write('\r\n')
+					uri=track['track']['uri']
+					name=track['track']['name']
+					artists=', '.join([artist['name'] for artist in track['track']['artists']])
+					release_date=track['track']['album']['release_date']
+					album=track['track']['album']['name']
+
+					if args.format == 'txt':
+						f.write(f'{name}\t{artists}\t{album}\t{uri}\t{release_date}\n')
+					else:
+						f.write(f'{name} - {artists}\n')
+				f.write('\n')
+
 			if len(liked_albums) > 0:
-				f.write('Liked Albums: \r\n\r\n')
+				f.write('Liked Albums: \n')
 				for album in liked_albums:
 					uri = album['album']['uri']
 					name = album['album']['name']
@@ -213,7 +217,10 @@ def main():
 					release_date = album['album']['release_date']
 					album = f'{artists} - {name}'
 
-					f.write(f'{name}\t{artists}\t-\t{uri}\t{release_date}\r\n')
+					if args.format == 'txt':
+						f.write(f'{name}\t{artists}\t-\t{uri}\t{release_date}\n')
+					else:
+						f.write(f'{name} - {artists}\n')
 
 	logging.info('Wrote file: ' + args.file)
 
