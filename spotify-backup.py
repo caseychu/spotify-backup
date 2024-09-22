@@ -204,7 +204,7 @@ def main():
 						release_date=track['track']['album']['release_date']
 					))
 				f.write('\r\n')
-			if len(liked_albums) > 0:
+			if len(liked_albums):
 				f.write('Liked Albums: \r\n\r\n')
 				for album in liked_albums:
 					uri = album['album']['uri']
