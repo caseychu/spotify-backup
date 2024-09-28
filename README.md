@@ -18,6 +18,6 @@ By default, it includes your playlists. To include your Liked Songs, you can use
     python3 spotify-backup.py playlists.txt --dump=liked,playlists
 
 
-If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private` permission) and pass it with the `--token` option.
+If for some reason the browser-based authorization flow doesn't work, you can also [generate an OAuth token](https://developer.spotify.com/web-api/console/get-playlists/) on the developer site (with the `playlist-read-private`, `playlist-read-collaborative` and `user-library-read` permissions) and pass it with the `--token` option.
 
 Collaborative playlists and playlist folders don't show up in the API, sadly.
