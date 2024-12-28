@@ -199,7 +199,7 @@ def main():
 					f.write('{name}\t{artists}\t{album}\t{uri}\t{release_date}\r\n'.format(
 						uri=track['track']['uri'],
 						name=track['track']['name'],
-						artists=', '.join([artist['name'] for artist in track['track']['artists']]),
+						artists = ', '.join([artist['name'] if artist['name'] else 'Unknown Artist' for artist in track['track']['artists']]),
 						album=track['track']['album']['name'],
 						release_date=track['track']['album']['release_date']
 					))
@@ -209,7 +209,7 @@ def main():
 				for album in liked_albums:
 					uri = album['album']['uri']
 					name = album['album']['name']
-					artists = ', '.join([artist['name'] for artist in album['album']['artists']])
+					artists = ', '.join([artist['name'] if artist['name'] else 'Unknown Artist' for artist in track['track']['artists']])
 					release_date = album['album']['release_date']
 					album = f'{artists} - {name}'
 
