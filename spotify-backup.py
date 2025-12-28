@@ -13,9 +13,27 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import webbrowser
+import secrets
+import string
+import base64
+import hashlib
 
 logging.basicConfig(level=20, datefmt='%I:%M:%S', format='[%(asctime)s] %(message)s')
 
+
+def generate_pkce_pair(length: int = 64) -> tuple[str, str]:
+	# https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow#code-verifier
+    chars = string.ascii_letters + string.digits
+    code_verifier = ''.join(secrets.choice(chars) for _ in range(length))
+
+    digest = hashlib.sha256(code_verifier.encode("utf-8")).digest()
+    code_challenge = (
+        base64.urlsafe_b64encode(digest)
+        .rstrip(b"=")
+        .decode("ascii")
+    )
+
+    return code_verifier, code_challenge
 
 class SpotifyAPI:
 	
@@ -64,11 +82,15 @@ class SpotifyAPI:
 	# Pops open a browser window for a user to log in and authorize API access.
 	@staticmethod
 	def authorize(client_id, scope):
+		code_verifier, code_challenge = generate_pkce_pair()
+
 		url = 'https://accounts.spotify.com/authorize?' + urllib.parse.urlencode({
-			'response_type': 'token',
+			'response_type': 'code',
 			'client_id': client_id,
 			'scope': scope,
-			'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT)
+			'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT),
+			'code_challenge_method': 'S256',
+			'code_challenge': code_challenge,
 		})
 		logging.info(f'Logging in (click if it doesn\'t open automatically): {url}')
 		webbrowser.open(url)
@@ -79,7 +101,19 @@ class SpotifyAPI:
 			while True:
 				server.handle_request()
 		except SpotifyAPI._Authorization as auth:
-			return SpotifyAPI(auth.access_token)
+			# https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow#request-an-access-token
+			body = bytes(urllib.parse.urlencode({
+				'grant_type': 'authorization_code',
+				'code': auth.access_code,
+				'redirect_uri': 'http://127.0.0.1:{}/redirect'.format(SpotifyAPI._SERVER_PORT),
+				'client_id': client_id,
+				'code_verifier': code_verifier,
+			}), encoding='utf-8')
+			req = urllib.request.Request("https://accounts.spotify.com/api/token", data=body)
+			req.add_header('content-type', 'application/x-www-form-urlencoded')
+			res = urllib.request.urlopen(req)
+			reader = codecs.getreader('utf-8')
+			return SpotifyAPI(json.load(reader(res))['access_token'])
 	
 	# The port that the local server listens on. Don't change this,
 	# as Spotify only will redirect to certain predefined URLs.
@@ -95,25 +129,17 @@ class SpotifyAPI:
 	
 	class _AuthorizationHandler(http.server.BaseHTTPRequestHandler):
 		def do_GET(self):
-			# The Spotify API has redirected here, but access_token is hidden in the URL fragment.
-			# Read it using JavaScript and send it to /token as an actual query string...
-			if self.path.startswith('/redirect'):
-				self.send_response(200)
-				self.send_header('Content-Type', 'text/html')
-				self.end_headers()
-				self.wfile.write(b'<script>location.replace("token?" + location.hash.slice(1));</script>')
-			
 			# Read access_token and use an exception to kill the server listening...
-			elif self.path.startswith('/token?'):
+			if self.path.startswith('/redirect?code'):
 				self.send_response(200)
 				self.send_header('Content-Type', 'text/html')
 				self.end_headers()
 				self.wfile.write(b'<script>close()</script>Thanks! You may now close this window.')
 
-				access_token = re.search('access_token=([^&]*)', self.path).group(1)
-				logging.info(f'Received access token from Spotify: {access_token}')
-				raise SpotifyAPI._Authorization(access_token)
-			
+				code = re.search('code=([^&]*)', self.path).group(1)
+				logging.info(f'Received access code from Spotify: {code}')
+
+				raise SpotifyAPI._Authorization(code)
 			else:
 				self.send_error(404)
 		
@@ -122,8 +148,8 @@ class SpotifyAPI:
 			pass
 	
 	class _Authorization(Exception):
-		def __init__(self, access_token):
-			self.access_token = access_token
+		def __init__(self, access_code):
+			self.access_code = access_code
 
 
 def main():
